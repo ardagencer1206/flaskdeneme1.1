@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+from openai import AzureOpenAI
 import traceback
 from typing import Dict, Any, List, Tuple
 
@@ -10,6 +12,25 @@ from pyomo.environ import (
 from pyomo.opt import TerminationCondition
 
 app = Flask(__name__, static_url_path="", static_folder=".")
+
+# ---------------- Azure OpenAI Ayarları ----------------
+AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY", "d0167637046c4443badc4920cc612abb")
+AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "https://openai-fnss.openai.azure.com")
+# Azure portalda oluşturduğun "Deployment name"
+AZURE_DEPLOYMENT_NAME = os.environ.get("AZURE_DEPLOYMENT_NAME", "gpt-4o-mini")  # <-- kendi deployment adını yaz
+
+# API versiyonu: hesabındaki modele uygun bir sürüm olmalı (Genelde 2024-xx)
+AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-06-01")
+
+try:
+    aoai_client = AzureOpenAI(
+        api_key=AZURE_OPENAI_API_KEY,
+        api_version=AZURE_OPENAI_API_VERSION,
+        azure_endpoint=AZURE_OPENAI_ENDPOINT
+    )
+except Exception:
+    aoai_client = None
+# -------------------------------------------------------
 
 
 # ------------------------------
@@ -472,6 +493,51 @@ def extract_results(model: ConcreteModel, meta: Dict[str, Any]) -> Dict[str, Any
 def root():
     return send_from_directory(".", "index.html")
 
+@app.route("/chat", methods=["POST"])
+def chat():
+    """
+    Önizleme/forma girilen JSON parametrelerini 'context' olarak alır,
+    'messages' listesindeki sohbet geçmişiyle birlikte Azure OpenAI'ye gönderir.
+    """
+    try:
+        if aoai_client is None:
+            return jsonify({"ok": False, "error": "Azure OpenAI istemcisi oluşturulamadı (anahtar/endpoint)."}), 500
+
+        payload = request.get_json(force=True) or {}
+        user_messages = payload.get("messages", [])
+        model_context = payload.get("context", {})
+
+        # Sistem mesajı: bağlam olarak model JSON’unu veriyoruz
+        sys_prompt = f"""
+Sen bir lojistik optimizasyon asistanısın. Kullanıcıdan gelen VRP/çok duruşlu taşımacılık
+parametrelerini (şehirler, dönemler, ana depo, araç tip/sayıları, mesafeler, paketler,
+min. doluluk cezası) kullanarak kısa ve net cevap ver.
+
+Model için kullanılan JSON parametreleri:
+{model_context}
+
+Kurallar:
+- Sayısal/lojistik sorularda net hesap yap ve kısaca açıkla.
+- Tutarsızlık görürsen hangi alanın düzelmesi gerektiğini söyle.
+- Gereksiz ayrıntıya girme; anlaşılır ve kısa yanıt üret.
+        """.strip()
+
+        # Azure OpenAI Chat Completions (deployment name ile çağrılır)
+        completion = aoai_client.chat.completions.create(
+            model=AZURE_DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": sys_prompt},
+                *user_messages
+            ],
+            temperature=0.2,
+            max_tokens=600,
+        )
+        answer = completion.choices[0].message.content
+        return jsonify({"ok": True, "answer": answer})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Hata: {str(e)}", "trace": traceback.format_exc()}), 500
+
 
 @app.route("/health")
 def health():
@@ -535,6 +601,7 @@ def solve():
 if __name__ == "__main__":
     # Lokal test için:
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
 
 
