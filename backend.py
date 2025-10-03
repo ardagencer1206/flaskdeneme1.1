@@ -593,7 +593,7 @@ def chat():
         sys_prompt = f"""
 Sen bir lojistik optimizasyon asistanısın. Kullanıcıdan gelen VRP/çok duruşlu taşımacılık
 parametrelerini (şehirler, dönemler, ana depo, araç tip/sayıları, mesafeler, paketler,
-min. doluluk cezası) kullanarak kısa ve net cevap ver.
+min. doluluk cezası) kullanarak kısa ve net cevap ver. Her şehir bir depodur ama bir tane ana depo vardır. Alakasız bir şey sorulursa cevap verme. Senin Adın VRP Assist 2.0
 
 Model için kullanılan JSON parametreleri:
 {model_context}
@@ -713,4 +713,5 @@ def solve():
 if __name__ == "__main__":
     # Lokal test için:
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
