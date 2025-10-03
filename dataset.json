@@ -35,5 +35,5 @@
     {"id":"P7","baslangic":"İzmir","hedef":"İstanbul","agirlik":150,"ready":2,"deadline_suresi":5,"ceza":120},
     {"id":"P8","baslangic":"Bursa","hedef":"Ankara","agirlik":110,"ready":3,"deadline_suresi":3,"ceza":120}
   ],
-  "minutil_penalty": 110.0
+  "minutil_penalty": 5110.0
 }
