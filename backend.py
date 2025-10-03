@@ -11,6 +11,8 @@ from pyomo.environ import (
     Constraint, Any as PyAny, value, SolverFactory
 )
 from pyomo.opt import TerminationCondition
+from pathlib import Path
+DATASET_PATH = Path(__file__).parent / "dataset.json"
 
 MAX_SOLVE_SECONDS = 26  # işlemciye verdiğimiz süre
 app = Flask(__name__, static_url_path="", static_folder=".")
@@ -530,6 +532,48 @@ def extract_results(model: ConcreteModel, meta: Dict[str, Any]) -> Dict[str, Any
 def root():
     return send_from_directory(".", "index.html")
 
+@app.route("/dataset", methods=["GET", "PUT", "POST"])
+def dataset_endpoint():
+    """
+    GET  -> dataset.json'u oku ve döndür
+    PUT  -> gelen JSON'u doğrula ve dataset.json'a yaz
+    POST -> bazı ortamlarda PUT engelli olabilir; POST'u PUT gibi kullan
+    """
+    try:
+        if request.method == "GET":
+            if not DATASET_PATH.exists():
+                return jsonify({"ok": False, "error": "dataset.json bulunamadı"}), 404
+            with open(DATASET_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return jsonify({"ok": True, "dataset": data})
+
+        # PUT veya POST -> kaydet
+        try:
+            payload = request.get_json(force=True)
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"Geçersiz JSON: {e}"}), 400
+
+        # Basit şema kontrolü
+        required_keys = [
+            "cities","main_depot","periods",
+            "vehicle_types","vehicle_count",
+            "distances","packages","minutil_penalty"
+        ]
+        missing = [k for k in required_keys if k not in payload]
+        if missing:
+            return jsonify({"ok": False, "error": f"Eksik alanlar: {', '.join(missing)}"}), 400
+
+        # Dosyaya yaz
+        tmp_path = DATASET_PATH.with_suffix(".json.tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        tmp_path.replace(DATASET_PATH)  # atomic replace
+
+        return jsonify({"ok": True, "message": "dataset.json güncellendi"})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Hata: {e}"}), 500
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -669,3 +713,4 @@ def solve():
 if __name__ == "__main__":
     # Lokal test için:
     app.run(host="0.0.0.0", port=5000, debug=True)
+
