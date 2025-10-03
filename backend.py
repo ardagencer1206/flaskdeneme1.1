@@ -10,7 +10,7 @@ from pyomo.environ import (
     Constraint, Any as PyAny, value, SolverFactory
 )
 from pyomo.opt import TerminationCondition
-
+MAX_SOLVE_SECONDS = 25
 app = Flask(__name__, static_url_path="", static_folder=".")
 
 # ---------------- Azure OpenAI Ayarları ----------------
@@ -45,16 +45,18 @@ def safe_float(x, default=0.0):
 
 def pick_solver():
     """
-    Önce Pyomo APPsi-HiGHS (highspy) denenir (apt gerekmez).
-    Ardından klasik SolverFactory isimleri (highs/cbc/glpk/cplex).
+    Önce Pyomo APPsi-HiGHS (highspy) denenir.
+    Ardından klasik arayüzler (highs/cbc/glpk/cplex).
     Geriye (solver_adı, solver_nesnesi, is_appsi_bool) döner.
+    Tümünde 25 sn zaman limiti uygulanır.
     """
     # 1) APPsi-HiGHS (Python wrapper)
     try:
         from pyomo.contrib.appsi.solvers.highs import Highs as AppsiHighs
         s = AppsiHighs()
         try:
-            s.config.time_limit = 300
+            s.config.time_limit = MAX_SOLVE_SECONDS
+            # s.config.mip_rel_gap = 0.05  # istersen ayrıca gap hedefi
         except Exception:
             pass
         return "appsi_highs", s, True
@@ -66,18 +68,24 @@ def pick_solver():
         try:
             s = SolverFactory(cand)
             if s is not None and s.available():
-                # makul zaman sınırı (destekleyenlerde)
-                for key in ("timelimit", "time_limit"):
-                    try:
-                        s.options[key] = 300
-                    except Exception:
-                        pass
-                if cand == "cplex":
-                    try:
+                # Zaman limiti ve ilgili opsiyonlar (çözücüye göre anahtar isimleri farklı)
+                try:
+                    if cand == "highs":
+                        # HiGHS: time_limit (saniye, float)
+                        s.options["time_limit"] = MAX_SOLVE_SECONDS
+                    elif cand == "cbc":
+                        # CBC: seconds (saniye, int); ayrıca ratioGap vb. eklenebilir
+                        s.options["seconds"] = int(MAX_SOLVE_SECONDS)
+                    elif cand == "glpk":
+                        # GLPK: tmlim (saniye, int)
+                        s.options["tmlim"] = int(MAX_SOLVE_SECONDS)
+                    elif cand == "cplex":
+                        # CPLEX: timelimit; mipgap/threads opsiyonel
+                        s.options["timelimit"] = MAX_SOLVE_SECONDS
                         s.options["mipgap"] = 0.05
                         s.options["threads"] = 2
-                    except Exception:
-                        pass
+                except Exception:
+                    pass
                 return cand, s, False
         except Exception:
             continue
@@ -547,6 +555,7 @@ def health():
 def handle_500(e):
     return jsonify({"ok": False, "error": "Internal Server Error"}), 500
 
+# ==== /solve içinde "ÇÖZ" bölümünü aşağıdaki gibi güçlendirin ====
 @app.route("/solve", methods=["POST"])
 def solve():
     try:
@@ -557,42 +566,54 @@ def solve():
         if solver is None:
             return jsonify({"ok": False, "error": "Uygun MILP çözücüsü bulunamadı."}), 400
 
-        # --- ÇÖZ ---
-        # Appsi-HiGHS 'tee' kabul etmez; klasik arayüzde varsa kapatılmış tee ile deneriz.
+        # --- ÇÖZ (25 sn içinde) ---
+        # Not: load_solutions=True -> bulunan inkümbent model üzerine yüklenir.
         if is_appsi:
-            results = solver.solve(model)
+            results = solver.solve(model)  # APPsi zaten time_limit aldı
             term = getattr(results, "termination_condition", None)
         else:
             try:
-                results = solver.solve(model, tee=False)
+                results = solver.solve(model, tee=False, load_solutions=True)
             except TypeError:
-                results = solver.solve(model)
-            # TerminationCondition güvenli okuma (bazı arayüzler results.solver.* verir)
+                results = solver.solve(model, load_solutions=True)
             term = None
             if hasattr(results, "solver") and hasattr(results.solver, "termination_condition"):
                 term = results.solver.termination_condition
             else:
                 term = getattr(results, "termination_condition", None)
 
-        # --- Başarı kontrolü ---
-        # Pyomo TerminationCondition enumu ile karşılaştır; metin fallback'i de ekle.
-        success_terms = {
-            getattr(TerminationCondition, "optimal", None),
-            getattr(TerminationCondition, "feasible", None),
-            getattr(TerminationCondition, "locallyOptimal", None),
+        # --- İnkümbent var mı? (değerler modele yüklendi mi?) ---
+        def has_incumbent(m):
+            # Herhangi bir x değişkeninin değeri dolu ise çözüm yüklenmiştir
+            try:
+                for k, v in m.x.items():
+                    if v.value is not None:
+                        return True
+            except Exception:
+                pass
+            return False
+
+        # Başlık/diagnostics
+        diag = {
+            "termination": str(term),
+            "solver": solver_name,
+            # bazı arayüzlerde mevcut olabilir:
+            "wallclock_time": getattr(getattr(results, "solver", None), "wallclock_time", None),
+            "gap": getattr(getattr(results, "solver", None), "gap", None),
+            "status": getattr(getattr(results, "solver", None), "status", None),
         }
-        term_str = (str(term) or "").lower()  # örn: "terminationcondition.optimal"
 
-        is_success = (term in success_terms) \
-                     or term_str.endswith("optimal") \
-                     or term_str.endswith("feasible")
-
-        if is_success:
+        if has_incumbent(model):
+            # optimal/feasible olmasa da inkümbent'i UI'a döndür
             out = extract_results(model, meta)
-            return jsonify({"ok": True, "solver": solver_name, "result": out})
+            return jsonify({"ok": True, "solver": solver_name, "result": out, "diagnostics": diag})
 
-        # başarısız durum
-        return jsonify({"ok": False, "error": f"Çözüm bulunamadı. Durum: {term}"}), 200
+        # inkümbent yoksa: 25 sn içinde hiç uygulanabilir çözüm bulunamamış demektir
+        return jsonify({
+            "ok": False,
+            "error": f"25 sn içinde uygulanabilir çözüm bulunamadı. Durum: {term}",
+            "diagnostics": diag
+        }), 200
 
     except Exception as e:
         return jsonify({"ok": False, "error": f"Hata: {str(e)}", "trace": traceback.format_exc()}), 500
@@ -601,6 +622,7 @@ def solve():
 if __name__ == "__main__":
     # Lokal test için:
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
 
 
