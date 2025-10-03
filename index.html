@@ -4,62 +4,29 @@
   <meta charset="utf-8" />
   <title>Heterojen Filolu Çok Duruşlu Lojistik Optimizasyonu</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Bootstrap 5.3 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
-    :root{
-      --glass-bg: color-mix(in oklab, var(--bs-body-bg) 70%, transparent);
-      --glass-bd: color-mix(in oklab, var(--bs-body-color) 15%, transparent);
-    }
+    :root{ --glass-bg: color-mix(in oklab, var(--bs-body-bg) 70%, transparent); --glass-bd: color-mix(in oklab, var(--bs-body-color) 15%, transparent); }
     body{
       background: radial-gradient(1200px 800px at 10% -10%, rgba(13,110,253,.08), transparent 40%),
                   radial-gradient(800px 800px at 120% 20%, rgba(111,66,193,.10), transparent 35%),
-                  var(--bs-body-bg);
-      min-height: 100dvh;
+                  var(--bs-body-bg); min-height: 100dvh;
     }
-    .glass{
-      background: var(--glass-bg);
-      backdrop-filter: saturate(1.2) blur(6px);
-      -webkit-backdrop-filter: saturate(1.2) blur(6px);
-      border: 1px solid var(--glass-bd);
-    }
+    .glass{ background: var(--glass-bg); backdrop-filter: saturate(1.2) blur(6px); -webkit-backdrop-filter: saturate(1.2) blur(6px); border: 1px solid var(--glass-bd); }
     .shadow-soft{ box-shadow: 0 10px 30px rgba(0,0,0,.06); }
-
-    pre.code{ white-space: pre-wrap; font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace }
-    .kbd{ font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace }
-
-    .hero{
-      background: linear-gradient(135deg, rgba(13,110,253,.12), rgba(111,66,193,.10));
-      border-bottom: 1px solid var(--bs-border-color);
-    }
-
-    .table thead th{ position: sticky; top: 0; z-index: 1; }
-    .table-hover tbody tr:hover{ background-color: color-mix(in oklab, var(--bs-primary) 6%, transparent); }
-
+    pre.code{ white-space: pre-wrap; font-family: ui-monospace,Menlo,Consolas,monospace }
+    .hero{ background: linear-gradient(135deg, rgba(13,110,253,.12), rgba(111,66,193,.10)); border-bottom: 1px solid var(--bs-border-color); }
     .btn-ghost{ background: transparent; border: 1px solid var(--bs-border-color); }
     .btn-ghost:hover{ background: color-mix(in oklab, var(--bs-primary) 10%, transparent); }
-
-    #previewWrap .border{ border-style: dashed !important; }
-    .footnote{ font-size: .875rem; color: var(--bs-secondary-color); }
-
+    .footnote{ font-size:.875rem; color: var(--bs-secondary-color); }
     .bubble { white-space: pre-wrap; }
-    .bubble.user {
-      background: #0d6efd; color: #fff;
-      border-radius: 1rem; padding: .5rem .75rem; margin:.25rem 0;
-      align-self: flex-end; max-width: 90%;
-    }
-    .bubble.assistant {
-      background: var(--bs-secondary-bg); color: var(--bs-body-color);
-      border-radius: 1rem; padding: .5rem .75rem; margin:.25rem 0;
-      max-width: 90%;
-    }
-    #chatBox { display: flex; flex-direction: column; gap: .25rem; }
+    .bubble.user{ background:#0d6efd;color:#fff;border-radius:1rem;padding:.5rem .75rem;margin:.25rem 0;align-self:flex-end;max-width:90% }
+    .bubble.assistant{ background:var(--bs-secondary-bg);color:var(--bs-body-color);border-radius:1rem;padding:.5rem .75rem;margin:.25rem 0;max-width:90% }
+    #chatBox{ display:flex;flex-direction:column;gap:.25rem }
   </style>
 </head>
 <body>
-  <!-- Topbar -->
   <nav class="navbar navbar-expand-md sticky-top glass shadow-soft">
     <div class="container">
       <a class="navbar-brand d-flex align-items-center gap-2" href="#">
@@ -82,8 +49,7 @@
         <div class="col-12 col-lg-7">
           <h1 class="display-6 mb-2">Bitirmede Saplama Heterojen Filolu Çok Duruşlu Lojistik Optimizasyonu</h1>
           <p class="lead mb-0 text-secondary">
-            Bu sayfa <b>dataset.json</b>’u otomatik yükler; form sadece <b>editör</b> olarak çalışır.
-            <br/>Çöz’e basınca <b>payload gönderilmez</b>, backend sunucu tarafındaki dataset’i kullanır.
+            Bu sayfa <b>dataset.json</b>’u <u>read-only</u> gösterir. Çözüm, sunucudaki dataset ile yapılır.
           </p>
         </div>
         <div class="col-12 col-lg-5">
@@ -91,8 +57,8 @@
             <div class="d-flex align-items-center gap-3">
               <i class="bi bi-graph-up-arrow fs-1 text-primary"></i>
               <div>
-                <div class="fw-semibold">Hızlı İpucu</div>
-                <div class="text-secondary small">Düzenlediğin veriyi <b>JSON’u indir</b> ile kaydedip sunucudaki <code>dataset.json</code> dosyasıyla değiştirirsen, çözüm o verilerle çalışır.</div>
+                <div class="fw-semibold">İpucu</div>
+                <div class="text-secondary small">Dataset’i değiştirmek için sağ üstteki <b>Dataset’i Güncelle</b> butonunu kullan.</div>
               </div>
             </div>
           </div>
@@ -103,79 +69,68 @@
 
   <main id="main" class="container my-5">
     <div class="row g-4">
-      <!-- Form (Sadece Editör) -->
       <div class="col-12 col-lg-6">
         <div class="card glass shadow-soft border-0 rounded-4">
           <div class="card-body p-4">
             <div class="d-flex align-items-center justify-content-between mb-3">
-              <h3 class="h5 mb-0">🔧 Model Girdileri (Editör)</h3>
+              <h3 class="h5 mb-0">🔧 Model Girdileri (Read-only)</h3>
               <div class="d-flex gap-2">
-                <button id="reloadBtn" class="btn btn-sm btn-outline-secondary">Yeniden Yükle</button>
-                <button id="downloadBtn" class="btn btn-sm btn-outline-primary">JSON’u indir</button>
+                <a class="btn btn-sm btn-outline-primary" id="downloadBtn">JSON’u indir</a>
+                <a class="btn btn-sm btn-dark" href="/edit.html">Dataset’i Güncelle</a>
               </div>
             </div>
 
             <div class="mb-3">
               <label for="cities" class="form-label">Şehirler (JSON dizi)</label>
-              <input id="cities" class="form-control" placeholder='["İstanbul","Ankara","İzmir"]' />
-              <div class="form-text">Örn: <code>["İstanbul","Ankara"]</code></div>
+              <input id="cities" class="form-control" disabled />
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-12 col-md-6">
                 <label for="main_depot" class="form-label">Ana Depo</label>
-                <input id="main_depot" class="form-control" placeholder="İstanbul" />
+                <input id="main_depot" class="form-control" disabled />
               </div>
               <div class="col-12 col-md-6">
-                <label for="periods" class="form-label">Dönem Sayısı (t=1..N)</label>
-                <input id="periods" type="number" min="1" class="form-control" placeholder="6" />
+                <label for="periods" class="form-label">Dönem Sayısı</label>
+                <input id="periods" type="number" class="form-control" disabled />
               </div>
             </div>
 
             <div class="mb-3">
               <label for="vehicle_types" class="form-label">Araç Tipleri (JSON)</label>
-              <textarea id="vehicle_types" class="form-control" rows="6" placeholder='{"Küçük": {...}}'></textarea>
-              <div class="form-text">Anahtarlar, <b>Araç Sayıları</b> bölümünde kullanılacak tip adlarıdır.</div>
+              <textarea id="vehicle_types" class="form-control" rows="6" disabled></textarea>
             </div>
 
             <div class="mb-3">
               <label for="vehicle_count" class="form-label">Araç Sayıları (JSON)</label>
-              <textarea id="vehicle_count" class="form-control" rows="4" placeholder='{"Küçük": 2, "Orta": 1}'></textarea>
+              <textarea id="vehicle_count" class="form-control" rows="4" disabled></textarea>
             </div>
 
             <div class="mb-3">
               <label for="distances" class="form-label">Mesafeler (liste; [i, j, km])</label>
-              <textarea id="distances" class="form-control" rows="5" placeholder='[["İstanbul","Ankara",450], ...]'></textarea>
-              <div class="form-text">Tek yön girmen yeterli; simetrik tamamlanır. i→i = 0 kabul edilir.</div>
+              <textarea id="distances" class="form-control" rows="5" disabled></textarea>
             </div>
 
             <div class="mb-3">
               <label for="packages" class="form-label">Paketler (liste)</label>
-              <textarea id="packages" class="form-control" rows="7" placeholder='[{"id":"P1", ...}]'></textarea>
+              <textarea id="packages" class="form-control" rows="7" disabled></textarea>
             </div>
 
-            <div class="row g-3 mb-3">
+            <div class="row g-3">
               <div class="col-12 col-md-6">
                 <label for="minutil_penalty" class="form-label">Min. Doluluk Ceza (TL/kg)</label>
-                <input id="minutil_penalty" class="form-control" type="number" step="0.01" placeholder="10.0" />
+                <input id="minutil_penalty" class="form-control" type="number" disabled />
               </div>
               <div class="col-12 col-md-6 d-flex align-items-end">
-                <div class="d-flex gap-2 w-100 flex-wrap">
-                  <button id="solveBtn" class="btn btn-primary flex-fill">Çöz (Sunucu dataset’i ile)</button>
-                  <button class="btn btn-outline-secondary flex-fill" type="button"
-                          data-bs-toggle="collapse" data-bs-target="#previewWrap">Önizleme</button>
-                  <button class="btn btn-outline-dark flex-fill" type="button"
-                          data-bs-toggle="collapse" data-bs-target="#chatWrap">Chat</button>
-                </div>
+                <button id="solveBtn" class="btn btn-primary w-100">Çöz (Sunucu dataset’i ile)</button>
               </div>
             </div>
 
-            <div id="status" class="text-secondary small"></div>
+            <div id="status" class="text-secondary small mt-3"></div>
           </div>
         </div>
       </div>
 
-      <!-- Results -->
       <div class="col-12 col-lg-6">
         <div class="card glass shadow-soft border-0 rounded-4">
           <div class="card-body p-4">
@@ -183,140 +138,86 @@
               <h3 class="h5 mb-0">📈 Sonuçlar</h3>
               <span class="badge rounded-pill text-bg-info-subtle text-info-emphasis">Canlı</span>
             </div>
-            <div id="results" class="text-secondary">Henüz çözüm yok. Dataset ile çözmek için <b>Çöz</b>’e basın.</div>
+            <div id="results" class="text-secondary">Henüz çözüm yok. <b>Çöz</b>’e basın.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Tips & Preview -->
     <div class="card glass shadow-soft border-0 rounded-4 mt-4">
       <div class="card-body p-4">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-          <h3 class="h6 mb-0">ℹ️ JSON İpuçları</h3>
-          <span class="badge text-bg-light">Form editördür; çözüm sunucu dataset’iyle yapılır</span>
+          <h3 class="h6 mb-0">ℹ️ Not</h3>
+          <span class="badge text-bg-light">Bu sayfa read-only’dir</span>
         </div>
-        <ul class="text-secondary mb-3">
-          <li>Formdaki değişiklikler otomatik backend’e gitmez. <b>JSON’u indir</b> ile kaydedip sunucudaki <code>dataset.json</code> ile değiştirin.</li>
-          <li><b>Yeniden Yükle</b> mevcut sunucu dataset’ini tekrar getirir.</li>
+        <ul class="text-secondary mb-0">
+          <li>Dataset’i değiştirmek için <b>Dataset’i Güncelle</b> butonuna tıklayın.</li>
+          <li>Kaydedilen değişiklikler hemen çözüme yansır.</li>
         </ul>
-
-        <!-- Preview Collapse -->
-        <div class="collapse" id="previewWrap">
-          <div class="border rounded-4 p-3 bg-body-tertiary">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <span class="fw-semibold">Mevcut Editör JSON’u (önizleme)</span>
-              <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshPreview()">Yenile</button>
-            </div>
-            <pre class="code bg-dark text-light rounded p-3 mb-0" id="preview"></pre>
-          </div>
-        </div>
-
-        <!-- Chat Collapse -->
-        <div class="collapse mt-3" id="chatWrap">
-          <div class="border rounded-4 p-3 bg-body-tertiary">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <span class="fw-semibold">Chat (Parametre Asistanı)</span>
-              <span class="badge text-bg-light">VRP Assistant 1.0</span>
-            </div>
-
-            <div id="chatBox" class="chat-box border rounded p-2"
-                 style="max-height: 360px; overflow:auto; background: var(--bs-body-bg);">
-              <div id="chatMessages" class="small text-secondary">
-                Editördeki JSON’a göre sorular sorabilirsiniz. Örn: “P1 zamanında yetişiyor mu?”
-              </div>
-            </div>
-
-            <div class="input-group mt-2">
-              <input id="chatInput" class="form-control" placeholder="Soru yazın… (örn: 'Min. doluluk hedefi ne?')" />
-              <button id="chatSend" class="btn btn-dark" type="button">Gönder</button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
     <p class="mt-3 footnote"> TOBB ETÜ Endüstri <code>/solve</code> Bitirme Team</p>
   </main>
 
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- App JS -->
   <script>
-  /* ============================
-     Yardımcılar / Genel
-     ============================ */
-  const $  = (id) => document.getElementById(id);
-  const $$ = (sel) => document.querySelector(sel);
+    const $  = (id) => document.getElementById(id);
 
-  /* Güvenli collapse kapatma */
-  function safeHideCollapse(id){
-    const el = $(id);
-    if (!el) return;
-    try {
-      if (el.classList.contains("show")) {
-        const inst = bootstrap.Collapse.getOrCreateInstance(el);
-        inst.hide();
+    function fmtTL(x){
+      const v = Number.isFinite(x) ? x : 0;
+      return (Math.round(v*100)/100).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2}) + " TL";
+    }
+
+    function setStatus(msg, type="secondary"){
+      const s = $("status"); if (!s) return;
+      s.innerHTML = `<span class="text-${type}">${msg}</span>`;
+    }
+
+    async function loadDataset(){
+      setStatus("Dataset yükleniyor…");
+      try{
+        let res = await fetch("/dataset", { cache: "no-store" });
+        let data;
+        if(res.ok){
+          const js = await res.json();
+          if(js && js.ok && js.dataset) data = js.dataset;
+        }
+        if(!data){
+          const res2 = await fetch(`/dataset.json?v=${Date.now()}`, { cache: "no-store" });
+          if(!res2.ok) throw new Error("dataset.json okunamadı");
+          data = await res2.json();
+        }
+        $("cities").value = JSON.stringify(data.cities ?? [], null, 0);
+        $("main_depot").value = data.main_depot ?? "";
+        $("periods").value = data.periods ?? 1;
+        $("vehicle_types").value = JSON.stringify(data.vehicle_types ?? {}, null, 2);
+        $("vehicle_count").value = JSON.stringify(data.vehicle_count ?? {}, null, 2);
+        $("distances").value = JSON.stringify(data.distances ?? [], null, 2);
+        $("packages").value = JSON.stringify(data.packages ?? [], null, 2);
+        $("minutil_penalty").value = (data.minutil_penalty ?? 10).toString();
+        setStatus("Dataset yüklendi ✔️","success");
+      }catch(e){
+        console.error(e);
+        setStatus("Dataset yüklenemedi: "+e.message, "danger");
       }
-    } catch (_) { /* yoksay */ }
-  }
-
-  /* JSON alanlarını güvenle ayrıştır (Editör için) */
-  function parseJSONField(id, friendlyName){
-    try {
-      return JSON.parse($(id).value);
-    } catch (e) {
-      throw new Error(`${friendlyName} alanı geçerli JSON olmalı. Hata: ${e.message}`);
     }
-  }
 
-  /* Editördeki mevcut JSON’u derle (Önizleme/Chat/İndir için) */
-  function buildEditorJSON(){
-    const payload = {};
-    payload.cities          = parseJSONField("cities", "Şehirler");
-    payload.main_depot      = $("main_depot").value.trim();
-    payload.periods         = parseInt($("periods").value, 10);
-    payload.vehicle_types   = parseJSONField("vehicle_types", "Araç Tipleri");
-    payload.vehicle_count   = parseJSONField("vehicle_count", "Araç Sayıları");
-    payload.distances       = parseJSONField("distances", "Mesafeler");
-    payload.packages        = parseJSONField("packages", "Paketler");
-    payload.minutil_penalty = parseFloat($("minutil_penalty").value);
-
-    if (!payload.main_depot) throw new Error("Ana Depo boş olamaz.");
-    if (!Number.isFinite(payload.periods) || payload.periods < 1)
-      throw new Error("Dönem sayısı 1 veya daha büyük olmalı.");
-
-    return payload;
-  }
-
-  /* Biçimlendirme */
-  function fmtTL(x){
-    const v = Number.isFinite(x) ? x : 0;
-    return (Math.round(v*100)/100).toLocaleString(
-      "tr-TR",
-      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-    ) + " TL";
-  }
-
-  /* Sonuçları çiz */
-  function renderResults(resp){
-    const el = $("results");
-    if(!resp || resp.ok === false){
-      const msg = (resp && resp.error) ? resp.error : "Bilinmeyen hata";
-      el.innerHTML = `<div class="alert alert-warning mb-0" role="alert"> ${msg}</div>`;
-      return;
-    }
-    const r = resp.result || {};
-    let html = "";
-
-    html += `<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-      <span class="badge rounded-pill text-bg-primary">Çözücü: ${resp.solver}</span>
-      <span class="badge rounded-pill text-bg-success">Amaç: ${fmtTL(r.objective)}</span>
-    </div>`;
-
-    const cb = r.cost_breakdown || {};
-    html += `<h6 class="mt-2">Maliyet Dağılımı</h6>
+    function renderResults(resp){
+      const el = $("results");
+      if(!resp || resp.ok === false){
+        const msg = (resp && resp.error) ? resp.error : "Bilinmeyen hata";
+        el.innerHTML = `<div class="alert alert-warning mb-0">${msg}</div>`;
+        return;
+      }
+      const r = resp.result || {};
+      let html = "";
+      html += `<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <span class="badge rounded-pill text-bg-primary">Çözücü: ${resp.solver}</span>
+        <span class="badge rounded-pill text-bg-success">Amaç: ${fmtTL(r.objective)}</span>
+      </div>`;
+      const cb = r.cost_breakdown || {};
+      html += `<h6 class="mt-2">Maliyet Dağılımı</h6>
       <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-3">
         <thead class="table-light"><tr><th>Kalem</th><th>Tutar</th></tr></thead>
         <tbody>
@@ -324,289 +225,81 @@
           <tr><td>Sabit</td><td>${fmtTL(cb.fixed)}</td></tr>
           <tr><td>Gecikme</td><td>${fmtTL(cb.lateness)}</td></tr>
           <tr><td>Min. doluluk açığı</td><td>${fmtTL(cb.min_util_gap)}</td></tr>
-        </tbody>
-      </table></div>`;
-
-    if ((r.vehicle_routes||[]).length){
-      html += `<h6>Araç Rotaları</h6>`;
-      r.vehicle_routes.forEach(vr=>{
-        html += `<div class="border rounded-3 p-2 mb-2">
-          <div class="fw-semibold"> ${vr.vehicle} <span class="text-secondary fw-normal">(Kapasite: ${vr.capacity} kg)</span></div>
-          <div class="table-responsive"><table class="table table-sm table-hover mb-0">
-            <thead class="table-light"><tr><th>t</th><th>Rota</th><th>Mesafe</th><th>Yük</th><th>Doluluk</th><th>Paketler</th></tr></thead><tbody>`;
-        (vr.legs||[]).forEach(l=>{
-          html += `<tr>
-            <td>${l.t}</td>
-            <td>${l.from} → ${l.to}</td>
-            <td>${l.km} km</td>
-            <td>${Math.round(l.load_kg)} kg</td>
-            <td>${(l.utilization_pct||0).toFixed(1)}%</td>
-            <td>${(l.packages||[]).length ? l.packages.join(", ") : "—"}</td>
-          </tr>`;
+        </tbody></table></div>`;
+      if ((r.vehicle_routes||[]).length){
+        html += `<h6>Araç Rotaları</h6>`;
+        r.vehicle_routes.forEach(vr=>{
+          html += `<div class="border rounded-3 p-2 mb-2">
+            <div class="fw-semibold">${vr.vehicle} <span class="text-secondary fw-normal">(Kapasite: ${vr.capacity} kg)</span></div>
+            <div class="table-responsive"><table class="table table-sm table-hover mb-0">
+              <thead class="table-light"><tr><th>t</th><th>Rota</th><th>Mesafe</th><th>Yük</th><th>Doluluk</th><th>Paketler</th></tr></thead><tbody>`;
+          (vr.legs||[]).forEach(l=>{
+            html += `<tr><td>${l.t}</td><td>${l.from} → ${l.to}</td><td>${l.km} km</td><td>${Math.round(l.load_kg)} kg</td><td>${(l.utilization_pct||0).toFixed(1)}%</td><td>${(l.packages||[]).join(", ")||"—"}</td></tr>`;
+          });
+          html += `</tbody></table></div></div>`;
         });
-        html += `</tbody></table></div></div>`;
-      });
-    }
-
-    if ((r.packages||[]).length){
-      html += `<h6 class="mt-3">Paketler</h6>
-      <div class="table-responsive"><table class="table table-sm table-hover align-middle">
-        <thead class="table-light">
-          <tr><th>ID</th><th>Güzergâh</th><th>Hazır</th><th>Termin (t)</th><th>Teslim</th><th>Durum</th><th>Ceza</th></tr>
-        </thead><tbody>`;
-      r.packages.forEach(p=>{
-        const delivered = (p.delivered_at!==null && p.delivered_at!==undefined);
-        html += `<tr>
-          <td><b>${p.id}</b></td>
-          <td>${p.origin} → ${p.dest}</td>
-          <td>${p.ready}</td>
-          <td>${p.deadline_by}</td>
-          <td>${delivered? p.delivered_at : "—"}</td>
-          <td>${delivered? (p.on_time? "✅ Zamanında":"⚠️ Gecikmeli") : "❌ Teslim yok"}</td>
-          <td>${fmtTL(p.lateness_penalty||0)}</td>
-        </tr>`;
-      });
-      html += `</tbody></table></div>`;
-
-      r.packages.forEach(p=>{
-        html += `<div class="accordion mb-2" id="acc-${p.id}">
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#col-${p.id}">
-                 ${p.id} rota detay <span class="ms-2 badge text-bg-${p.passed_main_depot?'success':'secondary'}">${p.passed_main_depot?'Ana depo: Evet':'Ana depo: Hayır'}</span>
-              </button>
-            </h2>
-            <div id="col-${p.id}" class="accordion-collapse collapse" data-bs-parent="#acc-${p.id}">
-              <div class="accordion-body">
-                ${
-                  (p.route||[]).length
-                  ? `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
-                      <thead class="table-light"><tr><th>t</th><th>From</th><th>To</th><th>Araç</th></tr></thead>
-                      <tbody>${p.route.map(seg=>`<tr><td>${seg.t}</td><td>${seg.from}</td><td>${seg.to}</td><td>${seg.vehicle}</td></tr>`).join("")}</tbody>
-                     </table></div>`
-                  : `<div class="text-secondary">Rota yok.</div>`
-                }
-              </div>
-            </div>
-          </div>
-        </div>`;
-      });
-    }
-
-    $("results").innerHTML = html;
-  }
-
-  /* Durum/mesaj alanları */
-  function setStatus(msg, type="secondary"){
-    const s = $("status"); if (!s) return;
-    s.innerHTML = `<span class="text-${type}">${msg}</span>`;
-  }
-  function setResultsInfo(msg, type="info"){
-    const r = $("results"); if (!r) return;
-    r.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
-  }
-
-  /* dataset yükle (öncelik /dataset, sonra /dataset.json) */
-  async function loadDataset(){
-    setStatus("Dataset yükleniyor…");
-    let data;
-    try{
-      // Önce doğrulamalı endpoint
-      let res = await fetch("/dataset", { cache: "no-store" });
-      if(res.ok){
-        const js = await res.json();
-        if(js && js.ok && js.dataset) data = js.dataset;
       }
-      if(!data){
-        // Statik fallback
-        const res2 = await fetch(`/dataset.json?v=${Date.now()}`, { cache: "no-store" });
-        if(!res2.ok) throw new Error("dataset.json okunamadı");
-        data = await res2.json();
+      if ((r.packages||[]).length){
+        html += `<h6 class="mt-3">Paketler</h6>
+        <div class="table-responsive"><table class="table table-sm table-hover align-middle">
+          <thead class="table-light"><tr><th>ID</th><th>Güzergâh</th><th>Hazır</th><th>Termin</th><th>Teslim</th><th>Durum</th><th>Ceza</th></tr></thead><tbody>`;
+        r.packages.forEach(p=>{
+          const delivered = (p.delivered_at!==null && p.delivered_at!==undefined);
+          html += `<tr><td><b>${p.id}</b></td><td>${p.origin} → ${p.dest}</td><td>${p.ready}</td><td>${p.deadline_by}</td><td>${delivered? p.delivered_at : "—"}</td><td>${delivered? (p.on_time? "✅ Zamanında":"⚠️ Gecikmeli"):"❌ Teslim yok"}</td><td>${fmtTL(p.lateness_penalty||0)}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
       }
-      // Formu doldur
-      $("cities").value = JSON.stringify(data.cities ?? [], null, 0);
-      $("main_depot").value = data.main_depot ?? "";
-      $("periods").value = data.periods ?? 1;
-      $("vehicle_types").value = JSON.stringify(data.vehicle_types ?? {}, null, 2);
-      $("vehicle_count").value = JSON.stringify(data.vehicle_count ?? {}, null, 2);
-      $("distances").value = JSON.stringify(data.distances ?? [], null, 2);
-      $("packages").value = JSON.stringify(data.packages ?? [], null, 2);
-      $("minutil_penalty").value = (data.minutil_penalty ?? 10).toString();
-
-      refreshPreview();
-      setStatus("Dataset yüklendi ✔️", "success");
-    }catch(err){
-      console.error(err);
-      setStatus("Dataset yüklenemedi: " + err.message, "danger");
+      el.innerHTML = html;
     }
-  }
 
-  /* /solve çağrısı – payload GÖNDERME! */
-  async function runSolveUsingServerDataset() {
-    const res  = await fetch("/solve?use_dataset=1", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}" // boş payload -> backend dataset kullanır
+    async function runSolveUsingServerDataset() {
+      const res  = await fetch("/solve?use_dataset=1", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
+      });
+      const raw   = await res.text();
+      if(!(res.headers.get("content-type")||"").includes("application/json")) throw new Error("Sunucudan JSON yerine HTML/metin geldi: " + raw.slice(0,300));
+      const data = JSON.parse(raw);
+      if (!res.ok || data.ok === false) throw new Error(data.error || raw.slice(0,300) || ("HTTP " + res.status));
+      return data;
+    }
+
+    $("solveBtn")?.addEventListener("click", async ()=>{
+      $("solveBtn").disabled = true;
+      setStatus("Çözülüyor…");
+      try{
+        const data = await runSolveUsingServerDataset();
+        renderResults(data);
+        setStatus("Tamamlandı ✔️","success");
+      }catch(err){
+        console.error(err);
+        $("results").innerHTML = `<div class="alert alert-danger">Hata: ${err.message}</div>`;
+        setStatus("Hata oluştu","danger");
+      }finally{
+        $("solveBtn").disabled = false;
+      }
     });
 
-    const raw   = await res.text();
-    const ctype = res.headers.get("content-type") || "";
-    const isJSON = ctype.includes("application/json");
-    if (!isJSON) throw new Error("Sunucudan JSON yerine HTML/metin geldi: " + raw.slice(0, 300));
+    $("downloadBtn")?.addEventListener("click", async ()=>{
+      try{
+        const res = await fetch("/dataset", { cache:"no-store" });
+        let dataset;
+        if(res.ok){ const js=await res.json(); dataset = js?.dataset; }
+        if(!dataset){ const r2=await fetch(`/dataset.json?v=${Date.now()}`); dataset = await r2.json(); }
+        const blob = new Blob([JSON.stringify(dataset,null,2)], {type:"application/json;charset=utf-8"});
+        const url  = URL.createObjectURL(blob); const a=document.createElement("a");
+        a.href=url; a.download="dataset.json"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        setStatus("JSON indirildi.","success");
+      }catch(e){ setStatus("İndirme hatası: "+e.message,"danger"); }
+    });
 
-    let data;
-    try { data = JSON.parse(raw); }
-    catch (e) { throw new Error("JSON parse hatası: " + raw.slice(0, 300)); }
+    (function themeInit(){
+      const html=document.documentElement, toggle=document.getElementById("themeToggle"), sun=$("iconSun"), moon=$("iconMoon");
+      function apply(t){ html.setAttribute("data-bs-theme",t); const isL=t==="light"; sun?.classList.toggle("d-none",!isL); moon?.classList.toggle("d-none",isL); try{localStorage.setItem("ui-theme",t);}catch{} }
+      const saved=(()=>{ try{return localStorage.getItem("ui-theme");}catch{return null} })(); apply(saved||"light");
+      toggle?.addEventListener("click",()=>apply(html.getAttribute("data-bs-theme")==="light"?"dark":"light"));
+    })();
 
-    if (!res.ok || data.ok === false) {
-      // ok:false ise de mesaj göster (200 dönebilir)
-      throw new Error(data.error || raw.slice(0, 300) || ("HTTP " + res.status));
-    }
-    return data; // { ok:true, solver, result: {...} }
-  }
-
-  /* Çöz butonu */
-  $("solveBtn")?.addEventListener("click", async ()=>{
-    safeHideCollapse("previewWrap");
-    safeHideCollapse("chatWrap");
-
-    const btn  = $("solveBtn");
-    btn && (btn.disabled = true);
-    setStatus("Çözülüyor… (sunucu dataset’i ile)");
-    setResultsInfo("Sunucuya istek gönderildi…", "info");
-
-    try{
-      const data = await runSolveUsingServerDataset();
-      renderResults(data);
-      setStatus("Tamamlandı ✔️", "success");
-    }catch(err){
-      console.error(err);
-      setResultsInfo("Hata: " + (err.message || err), "danger");
-      setStatus("Hata oluştu", "danger");
-    }finally{
-      btn && (btn.disabled = false);
-    }
-  });
-
-  /* Önizleme alanını doldur (editör JSON’u) */
-  function refreshPreview(){
-    try{
-      $("preview").textContent = JSON.stringify(buildEditorJSON(), null, 2);
-    }catch(e){
-      $("preview").textContent = "Önizleme derlenemedi:\n" + e.message;
-    }
-  }
-  ["cities","main_depot","periods","vehicle_types","vehicle_count","distances","packages","minutil_penalty"]
-    .forEach(id => $(id)?.addEventListener("input", refreshPreview));
-
-  /* JSON’u indir (editör içeriği) */
-  $("downloadBtn")?.addEventListener("click", ()=>{
-    try{
-      const json = JSON.stringify(buildEditorJSON(), null, 2);
-      const blob = new Blob([json], { type: "application/json;charset=utf-8" });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href = url;
-      a.download = "dataset.json";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setStatus("JSON indirildi (dataset.json). Sunucuda bu dosya ile değiştirirsen çözüme yansır.", "success");
-    }catch(e){
-      setStatus("JSON indirilemedi: " + e.message, "danger");
-    }
-  });
-
-  /* Yeniden Yükle */
-  $("reloadBtn")?.addEventListener("click", loadDataset);
-
-  /* Tema toggle — guard’lı */
-  (function(){
-    const html     = document.documentElement;
-    const toggle   = $("themeToggle");
-    const iconSun  = $("iconSun");
-    const iconMoon = $("iconMoon");
-
-    function apply(theme){
-      html.setAttribute('data-bs-theme', theme);
-      const isLight = theme === 'light';
-      iconSun && iconSun.classList.toggle('d-none', !isLight);
-      iconMoon && iconMoon.classList.toggle('d-none',  isLight);
-      try{ localStorage.setItem('ui-theme', theme); }catch(_){}
-    }
-    const saved = (()=>{ try{ return localStorage.getItem('ui-theme'); }catch(_){ return null; } })();
-    apply(saved || 'light');
-
-    if (toggle){
-      toggle.addEventListener('click', ()=>{
-        const next = html.getAttribute('data-bs-theme') === 'light' ? 'dark' : 'light';
-        apply(next);
-      });
-    }
-  })();
-
-  /* ============================
-     Chat (collapse içinde)
-     ============================ */
-  const chatState = { messages: [] };
-
-  function pushChat(role, content){
-    chatState.messages.push({ role, content });
-    const area = $("chatMessages");
-    if (!area) return;
-    const div  = document.createElement("div");
-    div.className   = "bubble " + (role === "user" ? "user" : "assistant");
-    div.textContent = content;
-    area.appendChild(div);
-    const box = $("chatBox");
-    if (box) box.scrollTop = box.scrollHeight + 999;
-  }
-
-  async function sendChat(){
-    const input = $("chatInput");
-    if (!input) return;
-    const text = (input.value || "").trim();
-    if(!text) return;
-    input.value = "";
-    pushChat("user", text);
-
-    // Editördeki JSON'u bağlam olarak gönderiyoruz (solve’dan bağımsız)
-    let context = {};
-    try { context = buildEditorJSON(); } catch(_) { /* Form bozuksa boş bağlam */ }
-
-    try{
-      const res = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: chatState.messages, context })
-      });
-
-      const raw   = await res.text();
-      const isJSON= res.headers.get("content-type")?.includes("application/json");
-      if(!isJSON) throw new Error("Sunucudan JSON yerine HTML/metin geldi: " + raw.slice(0,200));
-
-      const data = JSON.parse(raw);
-      if(!res.ok || data.ok === false){
-        pushChat("assistant", "⚠️ " + (data.error || "Sunucu hatası"));
-        return;
-      }
-      pushChat("assistant", data.answer || "(yanıt boş)");
-    }catch(err){
-      console.error(err);
-      pushChat("assistant", "⚠️ İstek sırasında hata: " + err.message);
-    }
-  }
-
-  $("chatSend")?.addEventListener("click", sendChat);
-  $("chatInput")?.addEventListener("keydown", (e)=>{ if(e.key === "Enter") sendChat(); });
-
-  /* Toggle’lar arası çakışma önlemi */
-  $$('[data-bs-target="#previewWrap"]')?.addEventListener("click", ()=> safeHideCollapse("chatWrap"));
-  $$('[data-bs-target="#chatWrap"]')?.addEventListener("click",    ()=> safeHideCollapse("previewWrap"));
-
-  /* İlk yüklemede dataset’i çek ve önizlemeyi hazırla */
-  loadDataset();
+    loadDataset();
   </script>
 </body>
 </html>
