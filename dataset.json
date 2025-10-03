@@ -27,13 +27,7 @@
   ],
   "packages": [
     {"id":"P1","baslangic":"Ankara","hedef":"İzmir","agirlik":120,"ready":1,"deadline_suresi":5,"ceza":120},
-    {"id":"P2","baslangic":"İzmir","hedef":"Ankara","agirlik":90,"ready":1,"deadline_suresi":5,"ceza":120},
-    {"id":"P3","baslangic":"Bursa","hedef":"Eskişehir","agirlik":80,"ready":1,"deadline_suresi":3,"ceza":100},
-    {"id":"P4","baslangic":"Eskişehir","hedef":"Bursa","agirlik":70,"ready":2,"deadline_suresi":3,"ceza":100},
-    {"id":"P5","baslangic":"İstanbul","hedef":"Ankara","agirlik":180,"ready":1,"deadline_suresi":4,"ceza":140},
-    {"id":"P6","baslangic":"Ankara","hedef":"İstanbul","agirlik":160,"ready":2,"deadline_suresi":4,"ceza":140},
-    {"id":"P7","baslangic":"İzmir","hedef":"İstanbul","agirlik":150,"ready":2,"deadline_suresi":5,"ceza":120},
-    {"id":"P8","baslangic":"Bursa","hedef":"Ankara","agirlik":110,"ready":3,"deadline_suresi":3,"ceza":120}
+    {"id":"P2","baslangic":"İzmir","hedef":"Ankara","agirlik":90,"ready":1,"deadline_suresi":5,"ceza":120}
   ],
   "minutil_penalty": 12.0
 }
