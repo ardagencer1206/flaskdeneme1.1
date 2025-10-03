@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import json
 from openai import AzureOpenAI
 import traceback
 from typing import Dict, Any, List, Tuple
@@ -10,8 +11,17 @@ from pyomo.environ import (
     Constraint, Any as PyAny, value, SolverFactory
 )
 from pyomo.opt import TerminationCondition
-MAX_SOLVE_SECONDS = 26 #işlemciye verdiğimiz süre
+
+MAX_SOLVE_SECONDS = 26  # işlemciye verdiğimiz süre
 app = Flask(__name__, static_url_path="", static_folder=".")
+
+# =======================
+# Dataset yolu (env ile özelleştirilebilir)
+# =======================
+DATASET_PATH = os.environ.get(
+    "DATASET_PATH",
+    os.path.join(os.path.dirname(__file__), "dataset.json")
+)
 
 # ---------------- Azure OpenAI Ayarları ----------------
 AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY", "d0167637046c4443badc4920cc612abb")
@@ -43,12 +53,35 @@ def safe_float(x, default=0.0):
         return default
 
 
+def load_dataset_from_file() -> Dict[str, Any]:
+    """
+    dataset.json dosyasını okur ve dict döner.
+    DATASET_PATH env ile özelleştirilebilir.
+    """
+    try:
+        with open(DATASET_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        # minimum alan kontrolü
+        required = [
+            "cities", "main_depot", "periods", "vehicle_types",
+            "vehicle_count", "distances", "packages", "minutil_penalty"
+        ]
+        for k in required:
+            if k not in data:
+                raise KeyError(f"dataset.json alan eksik: {k}")
+        return data
+    except FileNotFoundError:
+        raise FileNotFoundError(f"dataset.json bulunamadı: {DATASET_PATH}")
+    except Exception as e:
+        raise RuntimeError(f"dataset.json okunamadı: {e}")
+
+
 def pick_solver():
     """
     Önce Pyomo APPsi-HiGHS (highspy) denenir.
     Ardından klasik arayüzler (highs/cbc/glpk/cplex).
     Geriye (solver_adı, solver_nesnesi, is_appsi_bool) döner.
-    Tümünde 25 sn zaman limiti uygulanır.
+    Tümünde MAX_SOLVE_SECONDS zaman limiti uygulanır.
     """
     # 1) APPsi-HiGHS (Python wrapper)
     try:
@@ -71,17 +104,13 @@ def pick_solver():
                 # Zaman limiti ve ilgili opsiyonlar (çözücüye göre anahtar isimleri farklı)
                 try:
                     if cand == "highs":
-                        # HiGHS: time_limit (saniye, float)
-                        s.options["time_limit"] = MAX_SOLVE_SECONDS
+                        s.options["time_limit"] = MAX_SOLVE_SECONDS             # float saniye
                     elif cand == "cbc":
-                        # CBC: seconds (saniye, int); ayrıca ratioGap vb. eklenebilir
-                        s.options["seconds"] = int(MAX_SOLVE_SECONDS)
+                        s.options["seconds"] = int(MAX_SOLVE_SECONDS)           # int saniye
                     elif cand == "glpk":
-                        # GLPK: tmlim (saniye, int)
-                        s.options["tmlim"] = int(MAX_SOLVE_SECONDS)
+                        s.options["tmlim"] = int(MAX_SOLVE_SECONDS)             # int saniye
                     elif cand == "cplex":
-                        # CPLEX: timelimit; mipgap/threads opsiyonel
-                        s.options["timelimit"] = MAX_SOLVE_SECONDS
+                        s.options["timelimit"] = MAX_SOLVE_SECONDS              # float saniye
                         s.options["mipgap"] = 0.05
                         s.options["threads"] = 2
                 except Exception:
@@ -468,11 +497,11 @@ def extract_results(model: ConcreteModel, meta: Dict[str, Any]) -> Dict[str, Any
 
         segs = []
         for t in periods:
-            for v in model.Vehicles:
+            for vv in model.Vehicles:
                 for i in cities:
                     for j in cities:
-                        if i != j and value(model.y[p, v, i, j, t]) > 0.5:
-                            segs.append({"t": t, "from": i, "to": j, "vehicle": v})
+                        if i != j and value(model.y[p, vv, i, j, t]) > 0.5:
+                            segs.append({"t": t, "from": i, "to": j, "vehicle": vv})
 
         summary = {
             "id": p,
@@ -500,6 +529,7 @@ def extract_results(model: ConcreteModel, meta: Dict[str, Any]) -> Dict[str, Any
 @app.route("/")
 def root():
     return send_from_directory(".", "index.html")
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -547,26 +577,46 @@ Kurallar:
         return jsonify({"ok": False, "error": f"Hata: {str(e)}", "trace": traceback.format_exc()}), 500
 
 
+@app.route("/dataset", methods=["GET"])
+def dataset():
+    """
+    dataset.json içeriğini döndürür (frontend kolayca çekebilmek için).
+    Zaten static_folder='.' olduğu için /dataset.json da servis edilir;
+    bu endpoint sadece JSON doğrulaması ve düzgün hata için var.
+    """
+    try:
+        data = load_dataset_from_file()
+        return jsonify({"ok": True, "dataset": data})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/health")
 def health():
     return jsonify({"ok": True})
+
 
 @app.errorhandler(500)
 def handle_500(e):
     return jsonify({"ok": False, "error": "Internal Server Error"}), 500
 
-# ==== /solve içinde "ÇÖZ" bölümünü aşağıdaki gibi güçlendirin ====
+
+# ==== /solve ====
 @app.route("/solve", methods=["POST"])
 def solve():
     try:
-        data = request.get_json(force=True)
+        # Önce gelen payload'ı dene; yoksa dataset.json'u yükle
+        data = request.get_json(silent=True) or {}
+        if not data:
+            data = load_dataset_from_file()
+
         model, meta = build_model(data)
 
         solver_name, solver, is_appsi = pick_solver()
         if solver is None:
             return jsonify({"ok": False, "error": "Uygun MILP çözücüsü bulunamadı."}), 400
 
-        # --- ÇÖZ (25 sn içinde) ---
+        # --- ÇÖZ (MAX_SOLVE_SECONDS içinde) ---
         # Not: load_solutions=True -> bulunan inkümbent model üzerine yüklenir.
         if is_appsi:
             results = solver.solve(model)  # APPsi zaten time_limit aldı
@@ -576,42 +626,39 @@ def solve():
                 results = solver.solve(model, tee=False, load_solutions=True)
             except TypeError:
                 results = solver.solve(model, load_solutions=True)
+            # TerminationCondition güvenli okuma
             term = None
             if hasattr(results, "solver") and hasattr(results.solver, "termination_condition"):
                 term = results.solver.termination_condition
             else:
                 term = getattr(results, "termination_condition", None)
 
-        # --- İnkümbent var mı? (değerler modele yüklendi mi?) ---
+        # --- İnkümbent var mı? ---
         def has_incumbent(m):
-            # Herhangi bir x değişkeninin değeri dolu ise çözüm yüklenmiştir
             try:
-                for k, v in m.x.items():
+                for _, v in m.x.items():
                     if v.value is not None:
                         return True
             except Exception:
                 pass
             return False
 
-        # Başlık/diagnostics
         diag = {
             "termination": str(term),
             "solver": solver_name,
-            # bazı arayüzlerde mevcut olabilir:
             "wallclock_time": getattr(getattr(results, "solver", None), "wallclock_time", None),
             "gap": getattr(getattr(results, "solver", None), "gap", None),
             "status": getattr(getattr(results, "solver", None), "status", None),
         }
 
         if has_incumbent(model):
-            # optimal/feasible olmasa da inkümbent'i UI'a döndür
             out = extract_results(model, meta)
             return jsonify({"ok": True, "solver": solver_name, "result": out, "diagnostics": diag})
 
-        # inkümbent yoksa: 25 sn içinde hiç uygulanabilir çözüm bulunamamış demektir
+        # inkümbent yoksa
         return jsonify({
             "ok": False,
-            "error": f"25 sn içinde uygulanabilir çözüm bulunamadı. Durum: {term}",
+            "error": f"{MAX_SOLVE_SECONDS} sn içinde uygulanabilir çözüm bulunamadı. Durum: {term}",
             "diagnostics": diag
         }), 200
 
@@ -622,21 +669,3 @@ def solve():
 if __name__ == "__main__":
     # Lokal test için:
     app.run(host="0.0.0.0", port=5000, debug=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
