@@ -1,0 +1,39 @@
+{
+  "cities": ["İstanbul", "Ankara", "İzmir", "Bursa", "Eskişehir"],
+  "main_depot": "İstanbul",
+  "periods": 6,
+  "vehicle_types": {
+    "Küçük": { "kapasite": 200, "maliyet_km": 2.5, "sabit_maliyet": 150, "min_doluluk": 0.40 },
+    "Orta":  { "kapasite": 420, "maliyet_km": 4.1, "sabit_maliyet": 320, "min_doluluk": 0.45 }
+  },
+  "vehicle_count": {
+    "Küçük": 2,
+    "Orta": 1
+  },
+  "distances": [
+    ["İstanbul","Ankara",450],
+    ["İstanbul","İzmir",330],
+    ["İstanbul","Bursa",150],
+    ["İstanbul","Eskişehir",325],
+
+    ["Ankara","İzmir",590],
+    ["Ankara","Bursa",390],
+    ["Ankara","Eskişehir",230],
+
+    ["İzmir","Bursa",330],
+    ["İzmir","Eskişehir",410],
+
+    ["Bursa","Eskişehir",150]
+  ],
+  "packages": [
+    {"id":"P1","baslangic":"Ankara","hedef":"İzmir","agirlik":120,"ready":1,"deadline_suresi":5,"ceza":120},
+    {"id":"P2","baslangic":"İzmir","hedef":"Ankara","agirlik":90,"ready":1,"deadline_suresi":5,"ceza":120},
+    {"id":"P3","baslangic":"Bursa","hedef":"Eskişehir","agirlik":80,"ready":1,"deadline_suresi":3,"ceza":100},
+    {"id":"P4","baslangic":"Eskişehir","hedef":"Bursa","agirlik":70,"ready":2,"deadline_suresi":3,"ceza":100},
+    {"id":"P5","baslangic":"İstanbul","hedef":"Ankara","agirlik":180,"ready":1,"deadline_suresi":4,"ceza":140},
+    {"id":"P6","baslangic":"Ankara","hedef":"İstanbul","agirlik":160,"ready":2,"deadline_suresi":4,"ceza":140},
+    {"id":"P7","baslangic":"İzmir","hedef":"İstanbul","agirlik":150,"ready":2,"deadline_suresi":5,"ceza":120},
+    {"id":"P8","baslangic":"Bursa","hedef":"Ankara","agirlik":110,"ready":3,"deadline_suresi":3,"ceza":120}
+  ],
+  "minutil_penalty": 10.0
+}
