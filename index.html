@@ -140,8 +140,36 @@
                   <button id="solveBtn" class="btn btn-primary flex-fill">Çöz (Sunucu dataset’i ile)</button>
                   <button class="btn btn-outline-secondary flex-fill" type="button"
                           data-bs-toggle="collapse" data-bs-target="#previewWrap">Önizleme</button>
-                  <button class="btn btn-outline-dark flex-fill" type="button"
-                          data-bs-toggle="collapse" data-bs-target="#chatWrap">Chat</button>
+<button
+  class="btn"
+  type="button"
+  data-bs-toggle="collapse"
+  data-bs-target="#chatWrap"
+  aria-label="Chat"
+  style="
+    --btn-bg: linear-gradient(135deg, rgba(13,110,253,.12), rgba(111,66,193,.12));
+    --btn-bd: rgba(0,0,0,.15);
+    --btn-tx: var(--bs-body-color);
+    display:inline-flex; align-items:center; gap:.5rem;
+    border:1px solid var(--btn-bd);
+    background: var(--btn-bg);
+    color: var(--btn-tx);
+    border-radius: 14px;
+    padding:.55rem .95rem;
+    font-weight: 600;
+    letter-spacing:.2px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.15);
+    backdrop-filter: saturate(1.15) blur(6px);
+    -webkit-backdrop-filter: saturate(1.15) blur(6px);
+    transition: transform .15s ease, box-shadow .15s ease, background .2s ease;
+  "
+  onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 10px 24px rgba(13,110,253,.18)'; this.style.background='linear-gradient(135deg, rgba(13,110,253,.18), rgba(111,66,193,.18))';"
+  onmouseout="this.style.transform='none'; this.style.boxShadow='0 6px 18px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.15)'; this.style.background='var(--btn-bg)';"
+>
+  <i class="bi bi-chat-dots-fill" style="font-size:1.05rem;"></i>
+  <span>Chat</span>
+</button>
+
                 </div>
               </div>
             </div>
@@ -397,3 +425,4 @@
   </script>
 </body>
 </html>
+
