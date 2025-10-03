@@ -10,7 +10,7 @@ from pyomo.environ import (
     Constraint, Any as PyAny, value, SolverFactory
 )
 from pyomo.opt import TerminationCondition
-MAX_SOLVE_SECONDS = 5
+MAX_SOLVE_SECONDS = 3
 app = Flask(__name__, static_url_path="", static_folder=".")
 
 # ---------------- Azure OpenAI Ayarları ----------------
@@ -622,6 +622,7 @@ def solve():
 if __name__ == "__main__":
     # Lokal test için:
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
 
 
