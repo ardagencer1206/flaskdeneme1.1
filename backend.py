@@ -18,16 +18,14 @@ DATASET_PATH = Path(os.environ.get("DATASET_PATH", str(Path(__file__).parent / "
 
 
 
+
 MAX_SOLVE_SECONDS = 26  # işlemciye verdiğimiz süre
 app = Flask(__name__, static_url_path="", static_folder=".")
 
 # =======================
 # Dataset yolu (env ile özelleştirilebilir)
 # =======================
-DATASET_PATH = os.environ.get(
-    "DATASET_PATH",
-    os.path.join(os.path.dirname(__file__), "dataset.json")
-)
+
 
 # ---------------- Azure OpenAI Ayarları ----------------
 AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY", "d0167637046c4443badc4920cc612abb")
@@ -717,6 +715,7 @@ def solve():
 if __name__ == "__main__":
     # Lokal test için:
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
 
 
