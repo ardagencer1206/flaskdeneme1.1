@@ -12,7 +12,11 @@ from pyomo.environ import (
 )
 from pyomo.opt import TerminationCondition
 from pathlib import Path
-DATASET_PATH = Path(__file__).parent / "dataset.json"
+DATASET_PATH = Path(os.environ.get("DATASET_PATH", str(Path(__file__).parent / "dataset.json")))
+
+
+
+
 
 MAX_SOLVE_SECONDS = 26  # işlemciye verdiğimiz süre
 app = Flask(__name__, static_url_path="", static_folder=".")
@@ -713,5 +717,6 @@ def solve():
 if __name__ == "__main__":
     # Lokal test için:
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
 
