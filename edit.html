@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="tr" data-bs-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <title>Dataset Düzenleyici • Lojistik Optimizasyon</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root{ --glass-bg: color-mix(in oklab, var(--bs-body-bg) 70%, transparent); --glass-bd: color-mix(in oklab, var(--bs-body-color) 15%, transparent); }
+    body{ background: radial-gradient(1200px 800px at 10% -10%, rgba(13,110,253,.08), transparent 40%),
+                    radial-gradient(800px 800px at 120% 20%, rgba(111,66,193,.10), transparent 35%),
+                    var(--bs-body-bg); min-height: 100dvh; }
+    .glass{ background: var(--glass-bg); backdrop-filter: saturate(1.2) blur(6px); -webkit-backdrop-filter: saturate(1.2) blur(6px); border: 1px solid var(--glass-bd); }
+    .shadow-soft{ box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+    pre.code{ white-space: pre-wrap; font-family: ui-monospace,Menlo,Consolas,monospace }
+    .hero{ background: linear-gradient(135deg, rgba(13,110,253,.12), rgba(111,66,193,.10)); border-bottom: 1px solid var(--bs-border-color); }
+    .btn-ghost{ background: transparent; border: 1px solid var(--bs-border-color); }
+    .btn-ghost:hover{ background: color-mix(in oklab, var(--bs-primary) 10%, transparent); }
+    .footnote{ font-size:.875rem; color: var(--bs-secondary-color); }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-md sticky-top glass shadow-soft">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+        <i class="bi bi-arrow-left-short fs-4"></i>
+        <span class="fw-semibold">Geri</span>
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-ghost" id="themeToggle" type="button" aria-label="Tema değiştir">
+          <i class="bi bi-sun-fill d-none" id="iconSun"></i>
+          <i class="bi bi-moon-stars-fill" id="iconMoon"></i>
+        </button>
+        <a class="btn btn-sm btn-primary" href="#main">Düzenle</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container py-5">
+      <h1 class="h4 mb-1">Dataset Düzenleyici</h1>
+      <p class="text-secondary mb-0">Aşağıdaki alanları değiştirip <b>Kaydet</b>’e basın. Sunucudaki <code>dataset.json</code> güncellenir.</p>
+    </div>
+  </header>
+
+  <main id="main" class="container my-4">
+    <div class="row g-4">
+      <div class="col-12">
+        <div class="card glass shadow-soft border-0 rounded-4">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h3 class="h6 mb-0">JSON Editörü</h3>
+              <div class="d-flex gap-2">
+                <button id="reloadBtn" class="btn btn-outline-secondary btn-sm">Sunucudan Yeniden Yükle</button>
+                <button id="formatBtn" class="btn btn-outline-primary btn-sm">Biçimlendir</button>
+                <button id="saveBtn" class="btn btn-dark btn-sm">Kaydet</button>
+              </div>
+            </div>
+            <textarea id="editor" class="form-control" rows="18" spellcheck="false" style="font-family: ui-monospace,Menlo,Consolas,monospace;"></textarea>
+            <div id="status" class="text-secondary small mt-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card glass shadow-soft border-0 rounded-4">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <h3 class="h6 mb-0">Önizleme</h3>
+              <span class="badge text-bg-light">Sadece görüntü</span>
+            </div>
+            <pre id="preview" class="code bg-dark text-light rounded p-3 mb-0" style="min-height: 180px"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="mt-3 footnote">Kaydetme sonrası ana sayfaya dönerek çözümü çalıştırabilirsiniz.</p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const $ = (id)=>document.getElementById(id);
+
+    function setStatus(msg,type="secondary"){ $("status").innerHTML = `<span class="text-${type}">${msg}</span>`; }
+    function refreshPreview(){
+      try{
+        const obj = JSON.parse($("editor").value);
+        $("preview").textContent = JSON.stringify(obj,null,2);
+        setStatus("Önizleme güncellendi ✔️","success");
+      }catch(e){
+        $("preview").textContent = e.message;
+        setStatus("JSON hatası: "+e.message,"danger");
+      }
+    }
+
+    async function loadFromServer(){
+      setStatus("Dataset yükleniyor…");
+      try{
+        let res = await fetch("/dataset", { cache:"no-store" });
+        let data;
+        if(res.ok){ const js = await res.json(); if(js?.ok && js.dataset) data = js.dataset; }
+        if(!data){
+          const r2 = await fetch(`/dataset.json?v=${Date.now()}`, { cache:"no-store" });
+          if(!r2.ok) throw new Error("dataset.json okunamadı");
+          data = await r2.json();
+        }
+        $("editor").value = JSON.stringify(data, null, 2);
+        refreshPreview();
+        setStatus("Dataset yüklendi ✔️","success");
+      }catch(e){
+        console.error(e);
+        setStatus("Yükleme hatası: "+e.message,"danger");
+      }
+    }
+
+    $("reloadBtn").addEventListener("click", loadFromServer);
+    $("formatBtn").addEventListener("click", ()=>{
+      try{ const obj = JSON.parse($("editor").value); $("editor").value = JSON.stringify(obj,null,2); refreshPreview(); }
+      catch(e){ setStatus("Biçimlendirme hatası: "+e.message,"danger"); }
+    });
+    $("editor").addEventListener("input", refreshPreview);
+
+    // Sunucuda dataset.json'u GÜNCELLE
+    $("saveBtn").addEventListener("click", async ()=>{
+      try{
+        const obj = JSON.parse($("editor").value); // doğrulama
+        setStatus("Kaydediliyor…");
+        const res = await fetch("/dataset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(obj)
+        });
+        const raw = await res.text();
+        if(!(res.headers.get("content-type")||"").includes("application/json")){
+          throw new Error("Sunucudan JSON dışı çıktı: "+raw.slice(0,200));
+        }
+        const js = JSON.parse(raw);
+        if(!res.ok || js.ok === false) throw new Error(js.error || raw.slice(0,200));
+        setStatus("Kaydedildi ✔️ Ana sayfaya yönlendiriliyor…","success");
+        setTimeout(()=>{ window.location.href = "/"; }, 600);
+      }catch(e){
+        console.error(e);
+        setStatus("Kaydetme hatası: "+e.message,"danger");
+      }
+    });
+
+    (function themeInit(){
+      const html=document.documentElement, toggle=$("themeToggle"), sun=$("iconSun"), moon=$("iconMoon");
+      function apply(t){ html.setAttribute("data-bs-theme",t); const isL=t==="light"; sun?.classList.toggle("d-none",!isL); moon?.classList.toggle("d-none",isL); try{localStorage.setItem("ui-theme",t);}catch{} }
+      const saved=(()=>{ try{return localStorage.getItem("ui-theme");}catch{return null} })(); apply(saved||"light");
+      toggle?.addEventListener("click",()=>apply(html.getAttribute("data-bs-theme")==="light"?"dark":"light"));
+    })();
+
+    loadFromServer();
+  </script>
+</body>
+</html>
