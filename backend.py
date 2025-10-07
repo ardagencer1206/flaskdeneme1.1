@@ -425,6 +425,50 @@ def dataset_endpoint():
     except Exception as e:
         return jsonify({"ok": False, "error": f"Hata: {e}"}), 500
 
+@app.route("/forecast", methods=["POST"])
+def forecast_endpoint():
+    global _LAST_CSV_BYTES
+
+    if "file" not in request.files:
+        abort(400, "Dosya yüklenmedi.")
+    file = request.files["file"]
+    if not file or file.filename == "":
+        abort(400, "Geçersiz dosya.")
+
+    h = int(request.form.get("h", "12"))
+    s = int(request.form.get("s", "12"))
+    col_date = request.form.get("col_date", "tarih").strip()
+    col_demand = request.form.get("col_demand", "talep").strip()
+    col_depo = (request.form.get("col_depo", "depo") or "").strip() or None
+    col_urun = (request.form.get("col_urun", "urun") or "").strip() or None
+    freq = (request.form.get("freq", "") or "").strip() or None
+
+    res_df = run_pipeline(file, h, s, col_date, col_demand, col_depo, col_urun, freq)
+
+    # CSV cache
+    csv_buf = io.StringIO()
+    res_df.to_csv(csv_buf, index=False)
+    _LAST_CSV_BYTES = csv_buf.getvalue().encode("utf-8")
+
+    # JSON-safe: NaN/±inf -> null (via pandas to_json)
+    out_df = res_df.copy()
+    if "tarih" in out_df.columns:
+        out_df["tarih"] = out_df["tarih"].astype(str)
+    out_df = out_df.replace([np.inf, -np.inf], np.nan)
+
+    data = json.loads(out_df.to_json(orient="records"))  # tüm NaN -> null
+
+    resp = {
+        "h": h,
+        "s": s,
+        "n_kayit": int(len(out_df)),
+        "columns": list(out_df.columns),
+        "data": data,
+        "capacity_source": "database.sql + DATABASE_URL" if os.getenv("DATABASE_URL") else "none",
+    }
+    return jsonify(resp)
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
@@ -515,4 +559,5 @@ def handle_500(e):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
